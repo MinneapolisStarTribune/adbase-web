@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { months, type Forecast } from "@/modules/forecasting/domain/models";
+import { months, type ForecastRow } from "@/modules/forecasting/domain/models";
 import type { Choices } from "@/modules/forecasting/application/service";
 import { api, ApiError, errorMessage } from "./client-api";
 export function ForecastEditor({
@@ -11,7 +11,7 @@ export function ForecastEditor({
   onSaved,
   onCancel,
 }: {
-  record?: Forecast;
+  record?: ForecastRow;
   choices: Choices;
   territoryId: string;
   year: number;
@@ -31,14 +31,15 @@ export function ForecastEditor({
     [saved, setSaved] = useState(false);
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (record?.kind === "carry-forward" && record.unavailableReason) return;
     setBusy(true);
     setError("");
     setFields({});
     try {
       await api(
-        record ? `forecasts/${record.id}` : "forecasts",
-        record ? "PATCH" : "POST",
-        record
+        record?.kind === "saved" ? `forecasts/${record.id}` : "forecasts",
+        record?.kind === "saved" ? "PATCH" : "POST",
+        record?.kind === "saved"
           ? { version: record.version, amounts }
           : { territoryId, year, advertiserId, productId, amounts },
       );
@@ -53,11 +54,19 @@ export function ForecastEditor({
   }
   return (
     <section className="panel editor">
-      <h2>{record ? "Edit forecast" : "New forecast"}</h2>
+      <h2>{record?.kind === "saved" ? "Edit forecast" : "New forecast"}</h2>
       <p>
         {territoryId} · {year}
       </p>
       <form onSubmit={save}>
+        {record?.kind === "carry-forward" && (
+          <p>
+            From {record.sourceYear} · Not saved for {year}.
+            {record.unavailableReason && (
+              <span role="alert"> {record.unavailableReason}</span>
+            )}
+          </p>
+        )}
         <fieldset disabled={busy || saved}>
           <div className="filters editor-selects">
             <label>
@@ -151,7 +160,15 @@ export function ForecastEditor({
         )}
         {saved && <p role="status">Forecast saved.</p>}
         <div className="actions">
-          <button type="submit" disabled={busy || saved}>
+          <button
+            type="submit"
+            disabled={
+              busy ||
+              saved ||
+              (record?.kind === "carry-forward" &&
+                Boolean(record.unavailableReason))
+            }
+          >
             {busy ? "Saving…" : "Save forecast"}
           </button>
           <button

@@ -35,6 +35,14 @@ export type Advertiser = Readonly<{
   territoryId: string;
   version: number;
 }>;
+export type ForecastRow =
+  | (Forecast & { kind: "saved"; rowKey: string })
+  | (Omit<Forecast, "id" | "version" | "updatedAt" | "updatedBy"> & {
+      kind: "carry-forward";
+      rowKey: string;
+      sourceYear: number;
+      unavailableReason?: string;
+    });
 export type Product = Readonly<{
   id: string;
   name: string;

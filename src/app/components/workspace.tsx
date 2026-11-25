@@ -8,7 +8,7 @@ import type {
 import {
   months,
   type AuditEvent,
-  type Forecast,
+  type ForecastRow,
 } from "@/modules/forecasting/domain/models";
 import { api, displayAmount, errorMessage } from "./client-api";
 import { ForecastEditor } from "./forecast-editor";
@@ -37,7 +37,7 @@ export function Workspace({ bootstrap }: { bootstrap: Bootstrap }) {
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
   const [editor, setEditor] = useState<{
-    record?: Forecast;
+    record?: ForecastRow;
     choices: Choices;
     territoryId: string;
     year: number;
@@ -61,7 +61,7 @@ export function Workspace({ bootstrap }: { bootstrap: Bootstrap }) {
       });
     return () => controller.abort();
   }, [filter, revision, tab]);
-  async function openEditor(record?: Forecast) {
+  async function openEditor(record?: ForecastRow) {
     setBusy(true);
     setError("");
     setMessage("");
@@ -273,14 +273,18 @@ export function Workspace({ bootstrap }: { bootstrap: Bootstrap }) {
           </section>
           {editor && (
             <ForecastEditor
-              key={editor.record?.id ?? "new"}
+              key={editor.record?.rowKey ?? "new"}
               {...editor}
               onCancel={() => setEditor(null)}
               onSaved={() => {
                 refresh((n) => n + 1);
                 if (editor.record) {
                   setEditor(null);
-                  setMessage("Forecast updated.");
+                  setMessage(
+                    editor.record.kind === "saved"
+                      ? "Forecast updated."
+                      : "Forecast created.",
+                  );
                 }
               }}
             />
@@ -317,10 +321,15 @@ export function Workspace({ bootstrap }: { bootstrap: Bootstrap }) {
                     </thead>
                     <tbody>
                       {result.forecasts.map((record) => (
-                        <tr key={record.id}>
+                        <tr key={record.rowKey}>
                           <th scope="row">
                             {record.advertiserName}
                             <small>{record.advertiserId}</small>
+                            {record.kind === "carry-forward" && (
+                              <small>
+                                From {record.sourceYear} · Not saved
+                              </small>
+                            )}
                           </th>
                           <td>{record.productName}</td>
                           {months.map((month) => (
@@ -336,6 +345,10 @@ export function Workspace({ bootstrap }: { bootstrap: Bootstrap }) {
                             >
                               Edit {record.advertiserId}
                             </button>
+                            {record.kind === "carry-forward" &&
+                              record.unavailableReason && (
+                                <small>{record.unavailableReason}</small>
+                              )}
                           </td>
                         </tr>
                       ))}

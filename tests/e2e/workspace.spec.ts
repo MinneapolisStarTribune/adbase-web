@@ -80,8 +80,16 @@ test("delegate creates a forecast and sees an updated annual total", async ({
     .selectOption("2027");
   await page.getByRole("button", { name: "View forecasts" }).click();
   await expect(
-    page.getByText("No forecasts match your selection."),
+    page.getByText("From 2026 · Not saved", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Edit 100003" }).click();
+  await expect(
+    page.getByRole("button", { name: "Save forecast" }),
+  ).toBeDisabled();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "product is not available",
+  );
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Add forecast" }).click();
   await page
     .getByRole("combobox", { name: "Advertiser", exact: true })
@@ -94,6 +102,61 @@ test("delegate creates a forecast and sees an updated annual total", async ({
   await expect(page.getByText("Forecast saved.")).toBeVisible();
   await expect(page.getByTestId("annual-total")).toHaveText("1,250.125");
 });
+test("previous-year candidate can be cancelled, created and edited without changing its source", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Sales representative", exact: true })
+    .click();
+  const sourceResponse = await page.request.get(
+    "/api/workspace/forecasts?territoryId=north&year=2026&search=100002",
+  );
+  const source = await sourceResponse.json();
+  await page
+    .getByRole("combobox", { name: "Year", exact: true })
+    .selectOption("2027");
+  await page.getByRole("button", { name: "View forecasts" }).click();
+  await expect(page.getByText("Page 1 of 2")).toBeVisible();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByText("Page 2 of 2")).toBeVisible();
+  await page.getByLabel("Advertiser search").fill("100002");
+  await page.getByRole("button", { name: "View forecasts" }).click();
+  await expect(
+    page.getByText("From 2026 · Not saved", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Edit 100002" }).click();
+  await expect(page.getByLabel("Jan", { exact: true })).toHaveValue("0");
+  await page.getByLabel("Jan", { exact: true }).fill("999");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Edit 100002" }).click();
+  await expect(page.getByLabel("Jan", { exact: true })).toHaveValue("0");
+  await page.getByLabel("Jan", { exact: true }).fill("123.4567");
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/workspace/forecasts") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save forecast" }).click();
+  expect((await created).status()).toBe(201);
+  await expect(page.getByText("Forecast created.")).toBeVisible();
+  await expect(
+    page.getByText("From 2026 · Not saved", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit 100002" }).click();
+  await expect(page.getByLabel("Jan", { exact: true })).toHaveValue("123.4567");
+  await page.getByLabel("Jan", { exact: true }).fill("124.4567");
+  await page.getByRole("button", { name: "Save forecast" }).click();
+  await expect(page.getByText("Forecast updated.")).toBeVisible();
+  expect(
+    await (
+      await page.request.get(
+        "/api/workspace/forecasts?territoryId=north&year=2026&search=100002",
+      )
+    ).json(),
+  ).toEqual(source);
+});
+
 test("administrator maintains advertiser and downloads Domo CSV", async ({
   page,
 }) => {

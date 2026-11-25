@@ -22,6 +22,7 @@ The existing `.env.local` is preserved. Application writes modify in-memory fixt
 ## Implemented workflows
 
 - Territory and configurable-year selection; advertiser ID/name search; ALL, #, and A–Z ranges; 30-row pagination. Search text overrides the range.
+- Previous-year advertiser/product combinations appear as unsaved zero-amount candidates when missing from the selected year. Saving creates a target-year record; unavailable products remain visible with an explanation.
 - Territory annual totals across all advertisers and pages, with decimal-string transport and exact decimal aggregation.
 - Forecast creation, editing of all twelve amounts, per-month validation, cancellation, duplicate detection, and optimistic version checks. Editing uses the original record identity; filters cannot alter its territory or year.
 - Administrator-only advertiser search, creation, ID/name/territory editing, duplicate checking, and conflict handling.
@@ -29,8 +30,6 @@ The existing `.env.local` is preserved. Application writes modify in-memory fixt
 - Opaque server-side sample sessions, logout/revocation, idle and absolute expiry, same-origin write checks, and authorization for direct API calls. User roles never come from a query parameter or mutation payload.
 - Structured logs, request correlation IDs, audit events, a restricted activity view, and configuration health checks.
 - CI, Linux Docker image definition, and local non-production Compose configuration.
-
-See [mock contract](docs/mock-contract.en.md) for provisional semantics and [implementation and verification status](docs/implementation-status.zh-CN.md) for the exact validation scope.
 
 ## Structure
 

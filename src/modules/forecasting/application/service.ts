@@ -2,6 +2,10 @@ import { z } from "zod";
 import { ForecastingError, type Actor, type Forecast } from "../domain/models";
 import { totalForecasts } from "../domain/money";
 import {
+  forecastRows,
+  creationUnavailableReason,
+} from "../domain/forecast-rows";
+import {
   advertiserSchema,
   matchesAdvertiser,
   parse,
@@ -113,11 +117,18 @@ export function createForecastService(
     query(actor: Actor, input: unknown, correlationId: string) {
       return run(actor, "forecast.query", correlationId, async () => {
         const q = parse(querySchema, input);
-        await context(actor, q.territoryId, q.year);
-        const all = (await repo.forecasts()).filter(
+        const meta = await context(actor, q.territoryId, q.year);
+        const records = await repo.forecasts();
+        const all = records.filter(
           (r) => r.territoryId === q.territoryId && r.year === q.year,
         );
-        const filtered = all
+        const filtered = forecastRows(
+          records,
+          q.territoryId,
+          q.year,
+          await repo.advertisers(),
+          meta,
+        )
           .filter((r) =>
             matchesAdvertiser(
               r.advertiserId,
@@ -129,7 +140,7 @@ export function createForecastService(
           .sort(
             (a, b) =>
               a.advertiserName.localeCompare(b.advertiserName) ||
-              a.id.localeCompare(b.id),
+              a.rowKey.localeCompare(b.rowKey),
           );
         const pageSize = 30,
           pages = Math.max(1, Math.ceil(filtered.length / pageSize)),
@@ -164,7 +175,11 @@ export function createForecastService(
         const value = parse(createSchema, input),
           meta = await context(actor, value.territoryId, value.year),
           amounts = parseAmounts(value.amounts);
-        const advertiser = (await repo.advertisers()).find(
+        const advertisers = await repo.advertisers();
+        const unavailable = creationUnavailableReason(value, advertisers, meta);
+        if (unavailable)
+          throw new ForecastingError("INVALID_INPUT", unavailable);
+        const advertiser = advertisers.find(
           (a) =>
             a.id === value.advertiserId && a.territoryId === value.territoryId,
         );
