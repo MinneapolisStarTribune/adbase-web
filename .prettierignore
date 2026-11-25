@@ -1,0 +1,9 @@
+node_modules
+.next
+.npm-cache
+coverage
+package-lock.json
+next-env.d.ts
+.playwright
+playwright-report
+test-results

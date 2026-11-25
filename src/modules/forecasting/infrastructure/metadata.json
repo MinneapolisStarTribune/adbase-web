@@ -1,0 +1,55 @@
+{
+  "years": [2026, 2027, 2028],
+  "territories": [
+    { "id": "north", "name": "North territory" },
+    { "id": "central", "name": "Central territory" },
+    { "id": "south", "name": "South territory" }
+  ],
+  "products": [
+    {
+      "id": "digital",
+      "name": "Digital",
+      "territoryIds": ["north", "central", "south"],
+      "years": [2026, 2027, 2028]
+    },
+    {
+      "id": "print",
+      "name": "Print",
+      "territoryIds": ["north", "central", "south"],
+      "years": [2026, 2027, 2028]
+    },
+    {
+      "id": "special",
+      "advertiserIds": ["100003"],
+      "name": "=Special, \"Package\"\nDigital",
+      "territoryIds": ["central"],
+      "years": [2026]
+    }
+  ],
+  "personas": [
+    {
+      "id": "mock-user",
+      "name": "Sales representative",
+      "isAdministrator": false,
+      "territoryIds": ["north"]
+    },
+    {
+      "id": "mock-delegate",
+      "name": "Delegated representative",
+      "isAdministrator": false,
+      "territoryIds": ["north", "central"]
+    },
+    {
+      "id": "mock-admin",
+      "name": "Forecast administrator",
+      "isAdministrator": true,
+      "territoryIds": []
+    },
+    {
+      "id": "mock-unmapped",
+      "name": "Unassigned employee",
+      "isAdministrator": false,
+      "territoryIds": []
+    }
+  ]
+}
